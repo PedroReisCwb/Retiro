@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased text-stone-800 dark:text-stone-100 bg-stone-50 dark:bg-stone-950 min-h-screen transition-colors duration-200;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-stone-300 dark:bg-stone-700 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-stone-400 dark:bg-stone-600;
+}
+
+/* Chord formatting */
+.chord-line {
+  @apply font-mono font-semibold text-rose-600 dark:text-rose-400 select-all tracking-wider;
+}
+
+.lyric-line {
+  @apply font-mono text-stone-800 dark:text-stone-200;
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  @apply bg-white/80 dark:bg-stone-900/80 backdrop-blur-md border border-stone-200/80 dark:border-stone-800/80 shadow-sm;
+}

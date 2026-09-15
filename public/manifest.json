@@ -1,0 +1,17 @@
+{
+  "short_name": "Retiro Casais",
+  "name": "Retiro de Casais - Roteiro & Gestão",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#7d4a3b",
+  "theme_color": "#7d4a3b",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/"
+}
