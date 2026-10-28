@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { Settings, Plus, Edit3, Trash2, Clock, Calendar, Music, Paperclip, Sparkles, Copy, Download, UploadCloud } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Settings, Plus, Edit3, Trash2, Clock, Calendar, Music, Paperclip, Sparkles, Copy, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { EventItem, Team, Song, DayOfWeek, Attachment } from '../types/retreat';
 import { FileUploadModal } from './FileUploadModal';
+
+export type AdminSortMode = 'manual' | 'time-asc' | 'time-desc';
 
 interface AdminPanelProps {
   events: EventItem[];
@@ -9,6 +11,7 @@ interface AdminPanelProps {
   songs: Song[];
   onSaveEvent: (event: EventItem) => void;
   onDeleteEvent: (id: string) => void;
+  onReorderEvents?: (events: EventItem[]) => void;
   onOpenSongViewer: (song: Song) => void;
 }
 
@@ -18,11 +21,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   songs,
   onSaveEvent,
   onDeleteEvent,
+  onReorderEvents,
   onOpenSongViewer,
 }) => {
   const [activeDay, setActiveDay] = useState<DayOfWeek>('sexta');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
+  const [sortMode, setSortMode] = useState<AdminSortMode>('manual');
 
   // Form states
   const [day, setDay] = useState<DayOfWeek>('sexta');
@@ -37,7 +42,61 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isFileModalOpen, setIsFileModalOpen] = useState(false);
 
-  const filteredEvents = events.filter(e => e.day === activeDay);
+  const filteredEvents = useMemo(() => {
+    const filtered = events.filter(e => e.day === activeDay);
+    if (sortMode === 'time-asc') {
+      return [...filtered].sort((a, b) => a.time.localeCompare(b.time));
+    }
+    if (sortMode === 'time-desc') {
+      return [...filtered].sort((a, b) => b.time.localeCompare(a.time));
+    }
+    // 'manual' preserves the stored order
+    return filtered;
+  }, [events, activeDay, sortMode]);
+
+  const handleMoveEvent = (eventId: string, direction: 'up' | 'down') => {
+    if (!onReorderEvents) return;
+    const dayEvents = events.filter(e => e.day === activeDay);
+    const index = dayEvents.findIndex(e => e.id === eventId);
+    if (index === -1) return;
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === dayEvents.length - 1) return;
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    const newDayEvents = [...dayEvents];
+    const [moved] = newDayEvents.splice(index, 1);
+    newDayEvents.splice(targetIndex, 0, moved);
+
+    let dayPointer = 0;
+    const updatedAllEvents = events.map(e => {
+      if (e.day === activeDay) {
+        return newDayEvents[dayPointer++];
+      }
+      return e;
+    });
+
+    onReorderEvents(updatedAllEvents);
+  };
+
+  const handleAutoSortByTime = () => {
+    if (!onReorderEvents) return;
+    const dayName = activeDay === 'sexta' ? 'Sexta-feira' : activeDay === 'sabado' ? 'Sábado' : 'Domingo';
+    if (!confirm(`Reorganizar todas as atividades de ${dayName} em ordem cronológica de horário?`)) return;
+
+    const dayEvents = events.filter(e => e.day === activeDay);
+    const sortedDayEvents = [...dayEvents].sort((a, b) => a.time.localeCompare(b.time));
+
+    let dayPointer = 0;
+    const updatedAllEvents = events.map(e => {
+      if (e.day === activeDay) {
+        return sortedDayEvents[dayPointer++];
+      }
+      return e;
+    });
+
+    onReorderEvents(updatedAllEvents);
+    setSortMode('manual');
+  };
 
   const handleOpenAdd = () => {
     setEditingEvent(null);
@@ -148,15 +207,48 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         ))}
       </div>
 
+      {/* Order Controls Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-stone-900 p-3 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-bold text-stone-600 dark:text-stone-400 flex items-center gap-1.5">
+            <ArrowUpDown className="w-3.5 h-3.5 text-retreat-600 dark:text-retreat-400" />
+            Ordem de visualização:
+          </span>
+          <select
+            value={sortMode}
+            onChange={(e) => setSortMode(e.target.value as AdminSortMode)}
+            className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-stone-800 dark:text-stone-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-retreat-500"
+          >
+            <option value="manual">Ordem do Roteiro (Manual / Personalizada)</option>
+            <option value="time-asc">Horário Crescente (Mais cedo primeiro ↑)</option>
+            <option value="time-desc">Horário Decrescente (Mais tarde primeiro ↓)</option>
+          </select>
+        </div>
+
+        {onReorderEvents && (
+          <button
+            onClick={handleAutoSortByTime}
+            className="text-xs font-semibold text-retreat-700 dark:text-retreat-300 hover:text-retreat-900 dark:hover:text-white flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-retreat-50 dark:bg-stone-800/80 hover:bg-retreat-100 dark:hover:bg-stone-700 border border-retreat-200 dark:border-stone-700 transition-all self-end sm:self-auto"
+            title="Organizar todas as atividades deste dia pelo horário em ordem cronológica"
+          >
+            <Clock className="w-3.5 h-3.5 text-retreat-600 dark:text-retreat-400" />
+            <span>Organizar este dia por horário</span>
+          </button>
+        )}
+      </div>
+
       {/* Events List in Admin View */}
       <div className="space-y-3">
-        {filteredEvents.map((ev) => (
+        {filteredEvents.map((ev, idx) => (
           <div
             key={ev.id}
             className="bg-white dark:bg-stone-900 p-4 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-retreat-400 transition-colors"
           >
             <div className="space-y-1 flex-1">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                <span className="text-[11px] font-bold text-stone-400 dark:text-stone-500">
+                  #{idx + 1}
+                </span>
                 <span className="px-2.5 py-0.5 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 text-xs font-mono font-bold">
                   {ev.time}
                 </span>
@@ -183,6 +275,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
             {/* Actions */}
             <div className="flex items-center space-x-1.5 self-end sm:self-center">
+              {/* Move Up/Down buttons (Active in manual sort mode) */}
+              {onReorderEvents && (
+                <div 
+                  className="flex items-center mr-1 bg-stone-100 dark:bg-stone-800/80 rounded-xl p-0.5 border border-stone-200 dark:border-stone-700"
+                  title={sortMode !== 'manual' ? 'Mude para "Ordem do Roteiro (Manual)" para mover itens livremente' : undefined}
+                >
+                  <button
+                    onClick={() => handleMoveEvent(ev.id, 'up')}
+                    disabled={idx === 0 || sortMode !== 'manual'}
+                    className="p-1.5 text-stone-500 hover:text-retreat-700 dark:hover:text-white disabled:opacity-25 disabled:cursor-not-allowed rounded-lg hover:bg-white dark:hover:bg-stone-700 transition-colors"
+                    title="Mover para cima no roteiro"
+                  >
+                    <ArrowUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleMoveEvent(ev.id, 'down')}
+                    disabled={idx === filteredEvents.length - 1 || sortMode !== 'manual'}
+                    className="p-1.5 text-stone-500 hover:text-retreat-700 dark:hover:text-white disabled:opacity-25 disabled:cursor-not-allowed rounded-lg hover:bg-white dark:hover:bg-stone-700 transition-colors"
+                    title="Mover para baixo no roteiro"
+                  >
+                    <ArrowDown className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
               <button
                 onClick={() => handleDuplicate(ev)}
                 className="p-2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800"

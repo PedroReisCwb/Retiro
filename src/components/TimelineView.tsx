@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, Sparkles, Calendar, Music, MapPin, CheckCircle2 } from 'lucide-react';
+import { Search, Filter, Sparkles, Calendar, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { EventItem, Team, Song, DayOfWeek } from '../types/retreat';
 import { EventCard } from './EventCard';
 
@@ -10,6 +10,8 @@ interface TimelineViewProps {
   onOpenSong: (song: Song) => void;
   onOpenAttachments: (event: EventItem) => void;
 }
+
+export type TimelineSortMode = 'roteiro' | 'time-asc' | 'time-desc';
 
 export const TimelineView: React.FC<TimelineViewProps> = ({
   events,
@@ -22,10 +24,11 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTeamId, setSelectedTeamId] = useState<string>('all');
   const [onlyHighlights, setOnlyHighlights] = useState(false);
+  const [sortMode, setSortMode] = useState<TimelineSortMode>('roteiro');
 
-  // Filter events by day, team, search query, highlights
+  // Filter and sort events by day, team, search query, highlights, sort mode
   const filteredEvents = useMemo(() => {
-    return events.filter((ev) => {
+    const filtered = events.filter((ev) => {
       if (ev.day !== selectedDay) return false;
       if (onlyHighlights && !ev.isHighlight) return false;
       if (selectedTeamId !== 'all') {
@@ -45,7 +48,16 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       }
       return true;
     });
-  }, [events, selectedDay, selectedTeamId, searchQuery, onlyHighlights]);
+
+    if (sortMode === 'time-asc') {
+      return [...filtered].sort((a, b) => a.time.localeCompare(b.time));
+    }
+    if (sortMode === 'time-desc') {
+      return [...filtered].sort((a, b) => b.time.localeCompare(a.time));
+    }
+    // 'roteiro' maintains the custom schedule order
+    return filtered;
+  }, [events, selectedDay, selectedTeamId, searchQuery, onlyHighlights, sortMode]);
 
   // Count events per day
   const dayCounts = useMemo(() => {
@@ -162,6 +174,21 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
             <Sparkles className="w-4 h-4" />
             <span className="hidden xs:inline">Destaques</span>
           </button>
+
+          {/* Visualization Order Selector */}
+          <div className="relative">
+            <select
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as TimelineSortMode)}
+              className="text-xs sm:text-sm pl-8 pr-7 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 shadow-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-rose-500 font-medium"
+              title="Mudar ordem de visualização"
+            >
+              <option value="roteiro">Ordem do Roteiro</option>
+              <option value="time-asc">Horário Crescente (↑)</option>
+              <option value="time-desc">Horário Decrescente (↓)</option>
+            </select>
+            <ArrowUpDown className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
         </div>
 
       </div>

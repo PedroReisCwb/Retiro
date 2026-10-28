@@ -80,6 +80,14 @@ export const App: React.FC = () => {
     showToast('Atividade removida.');
   };
 
+  const handleReorderEvents = (updatedEvents: EventItem[]) => {
+    setRetreatData(prev => ({
+      ...prev,
+      events: updatedEvents
+    }));
+    showToast('Ordem do roteiro atualizada!');
+  };
+
   // Team handlers
   const handleSaveTeam = (savedTeam: Team) => {
     setRetreatData(prev => {
@@ -192,6 +200,7 @@ export const App: React.FC = () => {
             songs={retreatData.songs}
             onSaveEvent={handleSaveEvent}
             onDeleteEvent={handleDeleteEvent}
+            onReorderEvents={handleReorderEvents}
             onOpenSongViewer={(song) => setViewingSong(song)}
           />
         )}
