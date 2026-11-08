@@ -1,14 +1,14 @@
 import { RetreatData } from '../types/retreat';
 import { INITIAL_RETREAT_DATA } from '../data/defaultRetreatData';
 
-const STORAGE_KEY = 'retiro_casais_pwa_data_v1';
+const STORAGE_KEY = 'retiro_casais_pwa_data_v2';
+const LEGACY_STORAGE_KEY = 'retiro_casais_pwa_data_v1';
 
 export function loadRetreatData(): RetreatData {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Ensure essential arrays exist
       return {
         retreatTitle: parsed.retreatTitle || INITIAL_RETREAT_DATA.retreatTitle,
         retreatSubtitle: parsed.retreatSubtitle || INITIAL_RETREAT_DATA.retreatSubtitle,
@@ -17,6 +17,28 @@ export function loadRetreatData(): RetreatData {
         songs: Array.isArray(parsed.songs) ? parsed.songs : INITIAL_RETREAT_DATA.songs,
         supabaseConfig: parsed.supabaseConfig
       };
+    }
+
+    // Check for legacy v1 storage to migrate Supabase credentials and custom songs
+    const legacySaved = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacySaved) {
+      try {
+        const legacyParsed = JSON.parse(legacySaved);
+        const migrated: RetreatData = {
+          retreatTitle: INITIAL_RETREAT_DATA.retreatTitle,
+          retreatSubtitle: INITIAL_RETREAT_DATA.retreatSubtitle,
+          events: INITIAL_RETREAT_DATA.events,
+          teams: INITIAL_RETREAT_DATA.teams,
+          songs: Array.isArray(legacyParsed.songs) && legacyParsed.songs.length > INITIAL_RETREAT_DATA.songs.length
+            ? legacyParsed.songs
+            : INITIAL_RETREAT_DATA.songs,
+          supabaseConfig: legacyParsed.supabaseConfig
+        };
+        saveRetreatData(migrated);
+        return migrated;
+      } catch (legacyErr) {
+        console.error('Failed to migrate legacy data:', legacyErr);
+      }
     }
   } catch (err) {
     console.error('Failed to load retreat data from localStorage:', err);

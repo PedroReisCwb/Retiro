@@ -1,24 +1,25 @@
 # Dependencies
 node_modules/
 
-# Production build output
+# Production build
 dist/
-dist-ssr/
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-src/.env
+dist-temp/
 
 # Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
+*.log
 
-# Editor / OS
-.vscode/
-.idea/
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Editor directories and OS files
 .DS_Store
-Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
